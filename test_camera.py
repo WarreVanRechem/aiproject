@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 
 # Model laden
-model = tf.keras.models.load_model("aiproject/res/cub200_mobilenetv2_alpha035.keras")
+model = tf.keras.models.load_model("aiproject/model_out/best_fast.keras")
 print("Model geladen ✓")
 
 # Class names (mooi leesbaar)
