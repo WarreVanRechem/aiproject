@@ -1,19 +1,24 @@
-# train_and_export.py – één script dat traint + exporteert naar Coral
+# train_and_export.py – Final Script voor Coral Edge TPU (MobileNetV2)
 import os
 import tensorflow as tf
 import numpy as np
 
 # -------------------------------
-# Config
+# 1. Configuratie
 # -------------------------------
 DATA_DIR = "dataset/nabirds/images"
 IMG_SIZE = (300, 300)
-BATCH = 16
+BATCH_SIZE = 16  # Voor training
 EPOCHS = 12
 MODEL_DIR = "model"
 
 os.makedirs(MODEL_DIR, exist_ok=True)
 
+print(f"📂 Configuratie: {IMG_SIZE} input, {EPOCHS} epochs")
+
+# -------------------------------
+# 2. Dataset Laden & Bewerken
+# -------------------------------
 print("📂 Dataset laden (nabirds)...")
 
 train_ds = tf.keras.utils.image_dataset_from_directory(
@@ -22,7 +27,7 @@ train_ds = tf.keras.utils.image_dataset_from_directory(
     subset="training",
     seed=42,
     image_size=IMG_SIZE,
-    batch_size=BATCH,
+    batch_size=BATCH_SIZE,
     label_mode="categorical"
 )
 
@@ -32,13 +37,16 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
     subset="validation",
     seed=42,
     image_size=IMG_SIZE,
-    batch_size=BATCH,
+    batch_size=BATCH_SIZE,
     label_mode="categorical"
 )
 
-# -------------------------------
-# Dataset optimalisatie + augmentatie
-# -------------------------------
+# Verkrijg de klasnamen
+class_names = train_ds.class_names
+num_classes = len(class_names)
+print(f"ℹ️ Aantal klassen: {num_classes} ({class_names})")
+
+# Data Augmentatie en caching
 AUTOTUNE = tf.data.AUTOTUNE
 
 augment = tf.keras.Sequential([
@@ -58,29 +66,24 @@ train_ds = (
 val_ds = val_ds.cache().prefetch(AUTOTUNE)
 
 # -------------------------------
-# Model opbouwen
+# 3. Model Bouwen (TPU-vriendelijk MobileNetV2)
 # -------------------------------
-print("\n⚙️ EfficientNetB3 laden...")
+print("\n⚙️ MobileNetV2 laden (TPU-compatibel)...")
 
-weights_path = tf.keras.utils.get_file(
-    "efficientnetb3_notop.h5",
-    "https://storage.googleapis.com/keras-applications/efficientnetb3_notop.h5"
-)
-
-base = tf.keras.applications.EfficientNetB3(
+base_model = tf.keras.applications.MobileNetV2(
     include_top=False,
-    weights=None,
-    input_shape=(300, 300, 3)
+    weights='imagenet',
+    alpha=1.0,  # Breedte van het netwerk
+    input_shape=(IMG_SIZE[0], IMG_SIZE[1], 3)
 )
-base.load_weights(weights_path)
-base.trainable = True
+base_model.trainable = True
 
 model = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(300, 300, 3)),
-    base,
+    tf.keras.layers.Input(shape=(IMG_SIZE[0], IMG_SIZE[1], 3)),
+    base_model,
     tf.keras.layers.GlobalAveragePooling2D(),
     tf.keras.layers.Dropout(0.3),
-    tf.keras.layers.Dense(557, activation="softmax")
+    tf.keras.layers.Dense(num_classes, activation="softmax") # Dynamische klassen
 ])
 
 model.compile(
@@ -90,56 +93,75 @@ model.compile(
 )
 
 # -------------------------------
-# Trainen
+# 4. Trainen (GPU-afdwinging hier)
 # -------------------------------
-print("\n🚀 START TRAINING (20-40 min)")
-model.fit(
-    train_ds,
-    validation_data=val_ds,
-    epochs=EPOCHS,
-    verbose=1
-)
+print("\n🚀 START TRAINING (probeer GPU:0 af te dwingen)...")
+
+try:
+    with tf.device("/GPU:0"):
+        model.fit(
+            train_ds,
+            validation_data=val_ds,
+            epochs=EPOCHS,
+            verbose=1
+        )
+    print("\n✅ Training succesvol uitgevoerd op /GPU:0 (of de GPU is automatisch gebruikt).")
+except RuntimeError as e:
+    # Dit zal een fout veroorzaken als de GPU niet correct is geconfigureerd
+    print(f"\n❌ FOUT: Kan /GPU:0 niet vinden of gebruiken. Controleer uw CUDA/cuDNN installatie of de Colab runtime-instellingen.")
+    print(f"Details van de fout: {e}")
+    # Optioneel: als u toch op de CPU wilt doorgaan, verwijder de 'raise' hieronder en de 'tf.device' hierboven.
+    # Als u hier 'exit()' toevoegt, stopt het script als de GPU niet werkt.
+    exit()
 
 # -------------------------------
-# Exporteren als SavedModel
-# -------------------------------
-print("\n💾 SavedModel opslaan...")
-model.export(f"{MODEL_DIR}/saved_model")
-
-# -------------------------------
-# TFLite Full-INT8 conversie
+# 5. Conversie naar Edge TPU TFLite (Fixed Batch Size 1)
 # -------------------------------
 print("\n🔄 Converteren naar TFLite Edge TPU formaat...")
 
-def rep_dataset():
-    # Representative dataset: ongeveer 200 samples = betere INT8 calibratie
-    for images, _ in train_ds.take(200):
-        yield [tf.cast(images, tf.float32)]
+# CRUCIAAL: Dwing batch size 1 af voor de Edge TPU compiler.
+try:
+    model.input.set_shape((1, IMG_SIZE[0], IMG_SIZE[1], 3))
+except:
+    print("⚠️ Waarschuwing: Kon input shape niet direct forceren. Controleer handmatig.")
 
-converter = tf.lite.TFLiteConverter.from_saved_model(f"{MODEL_DIR}/saved_model")
+
+def representative_data_gen():
+    data = train_ds.unbatch().batch(1).take(100)
+    for input_value, _ in data:
+        yield [tf.cast(input_value, tf.float32)]
+
+# Setup Converter
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
-converter.representative_dataset = rep_dataset
+converter.representative_dataset = representative_data_gen
+
 converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
 converter.inference_input_type = tf.uint8
 converter.inference_output_type = tf.uint8
 
-tflite_model = converter.convert()
+# Converteer!
+tflite_model_content = converter.convert()
 
-tflite_path = f"{MODEL_DIR}/bird_2class_edgetpu.tflite"
+# Opslaan
+tflite_filename = "nabirds_mobilenet_edgetpu.tflite"
+tflite_path = os.path.join(MODEL_DIR, tflite_filename)
+
 with open(tflite_path, "wb") as f:
-    f.write(tflite_model)
+    f.write(tflite_model_content)
 
-# -------------------------------
-# Labels
-# -------------------------------
-with open(f"{MODEL_DIR}/labels.txt", "w") as f:
-    f.write("witte_eend\nzwarte_aalscholver\n")
+# Sla labels op
+label_path = os.path.join(MODEL_DIR, "labels.txt")
+with open(label_path, "w") as f:
+    f.write('\n'.join(class_names) + '\n')
 
-# -------------------------------
-# Klaar
-# -------------------------------
-print("\n🎉 KLAAR! Alles staat in de map 'model':")
-print(f"   ✔ saved_model/")
-print(f"   ✔ {tflite_path}  ← kopieer dit naar je Coral")
-print(f"   ✔ labels.txt")
-print("\n🔜 Morgen krijg je het Coral webcam real-time script (50–70 FPS)!")
+
+print("\n" + "="*40)
+print(f"✅ SUCCES! Bestand aangemaakt: {tflite_path}")
+print("="*40)
+print("👉 VOLGENDE STAPPEN:")
+print(f"1. Upload '{tflite_filename}' naar Google Colab.")
+print(f"2. Run in Colab: ! edgetpu_compiler -s {tflite_filename}")
+print("3. Download het resultaat (*_edgetpu.tflite) en zet het op je Coral Board.")
+print("4. Start de server met dit nieuwe, snelle model.")
+print("="*40)
