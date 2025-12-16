@@ -3,7 +3,7 @@ import shutil
 
 # --- CONFIGURATIE ---
 # Jouw gekozen ID's
-TARGET_IDS = [991, 904, 821, 707, 995, 686, 507, 371]
+TARGET_IDS = [991, 904, 821, 33, 686, 507, 108,159]
 # Paden (we gaan er vanuit dat dit script in de nabird map staat)
 BASE_DIR = os.getcwd()
 IMAGES_DIR = os.path.join(BASE_DIR, 'nabird/images')
