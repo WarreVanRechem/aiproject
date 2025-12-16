@@ -41,10 +41,11 @@ Voor dit project hebben we de taken verdeeld op basis van technische expertise, 
     * Conversie en optimalisatie van het model naar TensorFlow Lite voor de Edge TPU.
     * Ontwikkeling van de Flask applicatie en multithreading voor video-streaming naar de PC.
     * Implementatie van de camera-drivers en beeldverwerking.
-* **Warre** (Model Training & Tuning)
+* **Warre** (Model Training, Flask & TF Lite & Tuning)
     * Samenstellen en structureren van het TensorFlow model.
     * Trainen van het model over meerdere epochs en parameter-tuning.
     * Ondersteuning bij de TF Lite conversie.
+    * Ontwikkeling van de Flask applicatie en multithreading voor video-streaming naar de PC.
 
 ### Hardware & Peripherals
 *Verantwoordelijk voor de fysieke setup, I/O en hardware-visualisatie.*
