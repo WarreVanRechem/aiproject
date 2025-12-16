@@ -1,0 +1,145 @@
+# train_and_export.py – één script dat traint + exporteert naar Coral
+import os
+import tensorflow as tf
+import numpy as np
+
+# -------------------------------
+# Config
+# -------------------------------
+DATA_DIR = "dataset/nabirds/images"
+IMG_SIZE = (300, 300)
+BATCH = 16
+EPOCHS = 12
+MODEL_DIR = "model"
+
+os.makedirs(MODEL_DIR, exist_ok=True)
+
+print("📂 Dataset laden (nabirds)...")
+
+train_ds = tf.keras.utils.image_dataset_from_directory(
+    DATA_DIR,
+    validation_split=0.2,
+    subset="training",
+    seed=42,
+    image_size=IMG_SIZE,
+    batch_size=BATCH,
+    label_mode="categorical"
+)
+
+val_ds = tf.keras.utils.image_dataset_from_directory(
+    DATA_DIR,
+    validation_split=0.2,
+    subset="validation",
+    seed=42,
+    image_size=IMG_SIZE,
+    batch_size=BATCH,
+    label_mode="categorical"
+)
+
+# -------------------------------
+# Dataset optimalisatie + augmentatie
+# -------------------------------
+AUTOTUNE = tf.data.AUTOTUNE
+
+augment = tf.keras.Sequential([
+    tf.keras.layers.RandomFlip("horizontal"),
+    tf.keras.layers.RandomRotation(0.2),
+    tf.keras.layers.RandomZoom(0.2),
+], name="augmentation")
+
+train_ds = (
+    train_ds
+    .map(lambda x, y: (augment(x, training=True), y), num_parallel_calls=AUTOTUNE)
+    .cache()
+    .shuffle(500)
+    .prefetch(AUTOTUNE)
+)
+
+val_ds = val_ds.cache().prefetch(AUTOTUNE)
+
+# -------------------------------
+# Model opbouwen
+# -------------------------------
+print("\n⚙️ EfficientNetB3 laden...")
+
+weights_path = tf.keras.utils.get_file(
+    "efficientnetb3_notop.h5",
+    "https://storage.googleapis.com/keras-applications/efficientnetb3_notop.h5"
+)
+
+base = tf.keras.applications.EfficientNetB3(
+    include_top=False,
+    weights=None,
+    input_shape=(300, 300, 3)
+)
+base.load_weights(weights_path)
+base.trainable = True
+
+model = tf.keras.Sequential([
+    tf.keras.layers.Input(shape=(300, 300, 3)),
+    base,
+    tf.keras.layers.GlobalAveragePooling2D(),
+    tf.keras.layers.Dropout(0.3),
+    tf.keras.layers.Dense(557, activation="softmax")
+])
+
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+    loss="categorical_crossentropy",
+    metrics=["accuracy"]
+)
+
+# -------------------------------
+# Trainen
+# -------------------------------
+print("\n🚀 START TRAINING (20-40 min)")
+model.fit(
+    train_ds,
+    validation_data=val_ds,
+    epochs=EPOCHS,
+    verbose=1
+)
+
+# -------------------------------
+# Exporteren als SavedModel
+# -------------------------------
+print("\n💾 SavedModel opslaan...")
+model.export(f"{MODEL_DIR}/saved_model")
+
+# -------------------------------
+# TFLite Full-INT8 conversie
+# -------------------------------
+print("\n🔄 Converteren naar TFLite Edge TPU formaat...")
+
+def rep_dataset():
+    # Representative dataset: ongeveer 200 samples = betere INT8 calibratie
+    for images, _ in train_ds.take(200):
+        yield [tf.cast(images, tf.float32)]
+
+converter = tf.lite.TFLiteConverter.from_saved_model(f"{MODEL_DIR}/saved_model")
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
+converter.representative_dataset = rep_dataset
+converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+converter.inference_input_type = tf.uint8
+converter.inference_output_type = tf.uint8
+
+tflite_model = converter.convert()
+
+tflite_path = f"{MODEL_DIR}/bird_2class_edgetpu.tflite"
+with open(tflite_path, "wb") as f:
+    f.write(tflite_model)
+
+# -------------------------------
+# Labels
+# -------------------------------
+with open(f"{MODEL_DIR}/labels.txt", "w") as f:
+    f.write("witte_eend\nzwarte_aalscholver\n")
+
+# -------------------------------
+# Klaar
+# -------------------------------
+print("\n🎉 KLAAR! Alles staat in de map 'model':")
+print(f"   ✔ saved_model/")
+print(f"   ✔ {tflite_path}  ← kopieer dit naar je Coral")
+print(f"   ✔ labels.txt")
+print("\n🔜 Morgen krijg je het Coral webcam real-time script (50–70 FPS)!")
