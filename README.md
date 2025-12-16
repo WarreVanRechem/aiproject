@@ -190,7 +190,7 @@ Deze bestanden draaien op de Dev Board zelf:
 
 * **`nabirds_strict_quant_edgetpu.tflite`**
     Het eindproduct: het gekwantiseerde model, gecompileerd voor de Edge TPU.
-* **`coral_vol_code.py`**
+* **`top3_project.py`**
     De productie-code. Dit script laadt het model in de TPU, leest de camerabeelden of bestanden in, en voert de detectie uit.
 * **`labels.txt`**
     De lijst met vogelnamen die overeenkomen met de output van het model.
@@ -255,7 +255,7 @@ Google raadt aan om de `mdt` (Mendel Development Tool) te gebruiken om bestanden
 # Push het model, de labels en het script
 mdt push nabirds_strict_quant_edgetpu.tflite
 mdt push labels.txt
-mdt push coral_vol_code.py
+mdt push top3_project.py
 ```
 
 ### Stap 6: Installatie op de Coral (via MDT Shell)
