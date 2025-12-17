@@ -41,11 +41,13 @@ Voor dit project hebben we de taken verdeeld op basis van technische expertise, 
     * Conversie en optimalisatie van het model naar TensorFlow Lite voor de Edge TPU.
     * Ontwikkeling van de Flask applicatie en multithreading voor video-streaming naar de PC.
     * Implementatie van de camera-drivers en beeldverwerking.
-* **Warre** (Model Training, Flask & TF Lite & Tuning)
+    * Dataset selectie
+* **Warre** (Model Training, Flask, TF Lite & Tuning)
     * Samenstellen en structureren van het TensorFlow model.
     * Trainen van het model over meerdere epochs en parameter-tuning.
     * Ondersteuning bij de TF Lite conversie.
     * Ontwikkeling van de Flask applicatie en multithreading voor video-streaming naar de PC.
+    * Dataset selectie
 
 ### Hardware & Peripherals
 *Verantwoordelijk voor de fysieke setup, I/O en hardware-visualisatie.*
@@ -190,7 +192,7 @@ Deze bestanden draaien op de Dev Board zelf:
 
 * **`nabirds_strict_quant_edgetpu.tflite`**
     Het eindproduct: het gekwantiseerde model, gecompileerd voor de Edge TPU.
-* **`coral_vol_code.py`**
+* **`top3_project.py`**
     De productie-code. Dit script laadt het model in de TPU, leest de camerabeelden of bestanden in, en voert de detectie uit.
 * **`labels.txt`**
     De lijst met vogelnamen die overeenkomen met de output van het model.
@@ -255,7 +257,7 @@ Google raadt aan om de `mdt` (Mendel Development Tool) te gebruiken om bestanden
 # Push het model, de labels en het script
 mdt push nabirds_strict_quant_edgetpu.tflite
 mdt push labels.txt
-mdt push coral_vol_code.py
+mdt push top3_project.py
 ```
 
 ### Stap 6: Installatie op de Coral (via MDT Shell)
@@ -300,3 +302,65 @@ Webstream: Ga op je PC naar het IP-adres van de Coral (poort 5000).
 Tip: Typ `ip a` in de shell om het IP-adres van de Coral te vinden als je dat niet weet.
 
 URL voorbeeld: http://192.168.100.2:5000
+<<<<<<< HEAD
+
+### Stap 8: Script automatisch laden bij opstart (Headless)
+
+Om het Coral Dev Board volledig autonoom te maken, gebruiken we Systemd om het Python script als een achtergrondservice te draaien zodra het bord stroom krijgt.
+
+1. Maak de service file aan: Open een editor op de Coral:
+```bash
+sudo nano /etc/systemd/system/bird-classifier.service
+```
+
+2. Voeg de configuratie toe: 
+Plak onderstaande tekst in het bestand. Let op: Pas de paden aan als je bestandsstructuur anders is.
+```bash
+[Unit]
+Description=Bird Classifier Edge TPU Service
+After=network.target
+
+[Service]
+User=mendel
+WorkingDirectory=/home/mendel/bird_project
+ExecStart=/usr/bin/python3 /home/mendel/bird_project/project_top3.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+3. Activeer de service: 
+Voer de volgende commando's uit om de service te registreren en direct te starten:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable bird-classifier.service
+sudo systemctl start bird-classifier.service
+```
+
+4. Controleer de status:
+
+```bash
+sudo systemctl status bird-classifier.service
+```
+Als er `Active: active (running)` staat, is de installatie geslaagd!
+
+### 📊 Resultaten Testrun
+Tijdens de laatste testsessie (zie logs 16 dec 2025) functioneerde het systeem volledig autonoom.
+
+* **Status:** Service startte succesvol na reboot.
+* **Webserver:** Bereikbaar op `0.0.0.0:5000`.
+* **LCD:** Initialiseerde correct ("LCD Succesvol Geïnitialiseerd").
+
+**Detecties:**
+Het model detecteerde en classificeerde succesvol de volgende soorten in real-time:
+* Dark-eyed Junco (Pink-sided)
+* Bald Eagle (Meerdere opeenvolgende frames, totaal 8x geteld)
+* Snow Goose
+* Black-necked Stilt
+* Verdin
+* Hooded Oriole
+* Redhead
+* Song Sparrow  
