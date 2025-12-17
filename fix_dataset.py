@@ -2,7 +2,7 @@ import os
 import shutil
 
 # --- CONFIGURATIE ---
-TARGET_IDS = [991, 957, 821, 707, 995, 686, 507, 371]
+TARGET_IDS = [991, 904, 821, 33, 686, 507, 108,159]
 BASE_DIR = os.getcwd()
 IMAGES_DIR = os.path.join(BASE_DIR, 'nabird/images')
 DEST_DIR = os.path.join(BASE_DIR, 'coral_dataset')
