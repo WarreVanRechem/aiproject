@@ -67,6 +67,13 @@ Voor dit project hebben we de taken verdeeld op basis van technische expertise, 
 * **Warre** (Integratie Hardware met Software)
     * Samenvoegen verschillende hardware componenten met model. 
 
+### Documentatie
+* **Daan**
+    * README.md aangemaakt en bijgewerkt op deze GitHub-pagina.
+* **Robin**
+    * Bijhouden van weekelijkse taken en vooruitgang.
+* **Quinten**
+    * Project gerelateerd opzoekwerk en verificatie.
 ---
 
 ## 📋 Benodigdheden & Voorbereiding
