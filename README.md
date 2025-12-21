@@ -47,7 +47,10 @@ Voor dit project hebben we de taken verdeeld op basis van technische expertise, 
     * Trainen van het model over meerdere epochs en parameter-tuning.
     * Ondersteuning bij de TF Lite conversie.
     * Ontwikkeling van de Flask applicatie en multithreading voor video-streaming naar de PC.
-    * Dataset selectie
+    * Implementatie van de camera-drivers en beeldverwerking.
+    * Dataset selectie.
+    * Ontwikkelen preproces script.
+    * Onderzoek naar Tenserflow training met GPU.
 
 ### Hardware & Peripherals
 *Verantwoordelijk voor de fysieke setup, I/O en hardware-visualisatie.*
@@ -61,6 +64,8 @@ Voor dit project hebben we de taken verdeeld op basis van technische expertise, 
     * Ondersteuning bij de hardware-setup en tests.
     * Opzetten van I2C-communicatie.
     * Implementatie van de visuele output op het LCD-scherm.
+* **Warre** (Integratie Hardware met Software)
+    * Samenvoegen verschillende hardware componenten met model. 
 
 ---
 
