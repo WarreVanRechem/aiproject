@@ -66,6 +66,7 @@ De AI-logica draait volledig **on-device**, zonder cloudverbinding.
 - **Daan** – README & projectguide  
 - **Robin** – Weekrapporten  
 - **Quinten** – Onderzoek & verificatie  
+- **Warre** - Finale afwerking
 
 ---
 
