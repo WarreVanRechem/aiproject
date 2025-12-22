@@ -108,6 +108,15 @@ sudo apt-get install python3-opencv python3-flask libedgetpu1-std
 
 ## 3️⃣ Hardware Architectuur
 
+<div align="center">
+  <img src="./assets/Coral_Dev_Board.jpg" alt="Coral Dev Board" style="width: 40%;">
+  <br>
+  <small><em>Google Coral Dev Board met geïntegreerde Edge TPU</em></small>
+</div>
+
+De kern van dit project is de **Coral Dev Board**, een single-board computer die speciaal ontworpen is voor Edge AI-toepassingen.
+
+
 - **Host PC**: modeltraining
 - **Coral Dev Board**: inferentie
 - **Edge TPU**: hardwareversnelde AI
