@@ -57,6 +57,7 @@ De AI-logica draait volledig **on-device**, zonder cloudverbinding.
   - LCD-integratie
 - **Robin**
   - Hardware support
+  - I2C-communicatie
   - Model-evaluatie
   - Validatie & testing
 - **Warre**
