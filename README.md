@@ -7,6 +7,14 @@
 [![Mendel Linux](https://img.shields.io/badge/OS-Mendel_Linux-purple.svg)](https://coral.ai/docs/dev-board/get-started/)
 [![Coral Dev Board](https://img.shields.io/badge/Hardware-Coral_Dev_Board-green.svg)](https://coral.ai/products/dev-board/)
 
+
+<div align="center">
+  <img src="./assets/Project_opstelling_AI.png" alt="Projectopstelling Edge AI" style="width: 60%;">
+  <br>
+  <small><em>(Opmerking: AI-gegenereerde illustratie)</em></small>
+</div>
+
+
 ---
 
 ## 🎯 Projectopdracht & Doel
