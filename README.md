@@ -1,6 +1,6 @@
 # 🦅 Edge AI Vogelclassificatie  
 ## NABirds op Coral Dev Board  
-### Volledige README & Projectguide (incl. originele projectinfo)
+### Volledige README & Projectguide
 
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange.svg)](https://www.tensorflow.org/)
